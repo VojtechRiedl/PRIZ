@@ -1,7 +1,7 @@
 services:
   web:
     build: .
-    container_name: priz-web
+    container_name: pri-web
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:

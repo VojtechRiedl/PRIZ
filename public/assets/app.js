@@ -1,8 +1,11 @@
+// Spouští se až po načtení HTML, aby už existovaly prvky formulářů a seznamů.
 document.addEventListener('DOMContentLoaded', () => {
+    // Prvky pro rychlé filtrování seznamu knih bez nového dotazu na server.
     const quickFilter = document.querySelector('#quickFilter');
     const rows = Array.from(document.querySelectorAll('.book-row'));
     const visibleCount = document.querySelector('#visibleCount');
 
+    // Skryje nebo zobrazí řádky podle textu zadaného do rychlého filtru.
     function updateVisibleBooks() {
         if (!quickFilter || !visibleCount) {
             return;
@@ -21,15 +24,19 @@ document.addEventListener('DOMContentLoaded', () => {
         visibleCount.textContent = String(visible);
     }
 
+    // Rychlý filtr reaguje na každé psaní do inputu.
     if (quickFilter) {
         quickFilter.addEventListener('input', updateVisibleBooks);
     }
 
+    // Aktivní serverové filtry zobrazí jako štítky nad seznamem.
     const filterForm = document.querySelector('[data-filter-form]');
     const activeFilters = document.querySelector('#activeFilters');
 
     if (filterForm && activeFilters) {
         const labels = [];
+
+        // Projde všechna vyplněná pole formuláře a připraví čitelné popisky.
         filterForm.querySelectorAll('input[name], select[name]').forEach((field) => {
             if (!field.value) {
                 return;
@@ -45,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         activeFilters.innerHTML = labels.map((label) => `<span>${escapeHtml(label)}</span>`).join('');
     }
 
+    // Klientská kontrola formuláře pro rychlou zpětnou vazbu před odesláním.
+    // Stejná pravidla se ale musí kontrolovat i v PHP, protože JS jde vypnout.
     const bookForm = document.querySelector('[data-validate-book]');
     if (bookForm) {
         bookForm.addEventListener('submit', (event) => {
@@ -72,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const box = bookForm.querySelector('.client-errors');
             if (errors.length > 0 && box) {
+                // Při chybě se odeslání zastaví a nad formulář se vypíše seznam chyb.
                 event.preventDefault();
                 box.hidden = false;
                 box.innerHTML = `<h2>Zkontroluj formulář</h2><ul>${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join('')}</ul>`;
@@ -81,6 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Jednoduché escapování textu, který vkládáme přes innerHTML.
+// Chrání třeba popisky filtrů nebo validační chyby před vložením HTML.
 function escapeHtml(value) {
     return value.replace(/[&<>"']/g, (char) => ({
         '&': '&amp;',

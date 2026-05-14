@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
+// Filtry přichází z query stringu, například /books.php?q=php&genre=...
+// Hodnoty se dál validují až v repository před použitím v SQL.
 $filters = [
     'q' => trim((string) ($_GET['q'] ?? '')),
     'author' => (string) ($_GET['author'] ?? ''),
@@ -14,10 +16,12 @@ $filters = [
 render_header('Knihy');
 
 try {
+    // Číselníky naplní selecty, fetch_books() načte už filtrované výsledky.
     $options = lookup_options();
     $books = fetch_books($filters);
     $hasActiveFilter = implode('', $filters) !== '';
     ?>
+    <!-- Nadpis stránky a rychlá cesta na formulář pro vložení knihy. -->
     <section class="section-heading">
         <div>
             <p class="eyebrow">Databázový seznam</p>
@@ -26,6 +30,7 @@ try {
         <a class="button" href="/add-book.php">Přidat knihu</a>
     </section>
 
+    <!-- Serverové filtry se posílají metodou GET, aby šel výsledek sdílet odkazem. -->
     <form class="panel filters" method="get" action="/books.php" data-filter-form>
         <label>
             Hledat
@@ -72,6 +77,7 @@ try {
         </div>
     </form>
 
+    <!-- Rychlý filtr funguje jen v prohlížeči nad už načtenými řádky. -->
     <div class="tools">
         <label>
             Rychlý filtr na strance
@@ -80,6 +86,7 @@ try {
         <p class="muted"><span id="visibleCount"><?= count($books) ?></span> / <?= count($books) ?> knih zobrazeno</p>
     </div>
 
+    <!-- JavaScript sem vypíše štítky aktivních serverových filtrů. -->
     <div id="activeFilters" class="chips" aria-live="polite"></div>
 
     <?php if ($books === []): ?>
@@ -88,6 +95,7 @@ try {
             <p>Zkus upravit filtr nebo přidej novou knihu.</p>
         </section>
     <?php else: ?>
+        <!-- Každý řádek obsahuje text, podle kterého umí JS filtrovat na stránce. -->
         <div class="book-list" id="bookList">
             <?php foreach ($books as $book): ?>
                 <article class="book-row">
@@ -119,6 +127,7 @@ try {
     <?php endif; ?>
     <?php
 } catch (Throwable $exception) {
+    // Chyby databáze se zobrazí stejným způsobem jako na ostatních stránkách.
     render_db_error($exception);
 }
 

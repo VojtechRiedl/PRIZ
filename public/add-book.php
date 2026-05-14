@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
+// Z pole checkboxů vrátí čisté pole řetězců. Hodí se pro autory a žánry,
+// protože jeden název formulářového pole může mít více hodnot.
 function post_array(string $key): array
 {
     $value = $_POST[$key] ?? [];
     return is_array($value) ? array_values(array_filter(array_map('strval', $value))) : [];
 }
 
+// Serverová validace formuláře. Klientský JavaScript je jen pohodlí pro uživatele,
+// ale skutečná kontrola musí proběhnout tady před zápisem do databáze.
 function validate_book_form(array $options): array
 {
+    // Nejdřív se všechny hodnoty načtou z POSTu a oříznou od mezer.
     $data = [
         'title' => trim((string) ($_POST['title'] ?? '')),
         'isbn' => trim((string) ($_POST['isbn'] ?? '')),
@@ -26,27 +31,32 @@ function validate_book_form(array $options): array
     ];
     $errors = [];
 
+    // Povinný je název, vazby na číselníky, alespoň jeden autor a jeden žánr.
     if ($data['title'] === '') {
-        $errors[] = 'Nazev knihy je povinny.';
+        $errors[] = 'Název knihy je povinný.';
     }
 
+    // ISBN je volitelné, ale pokud je vyplněné, musí mít 13 číslic bez pomlček.
     if ($data['isbn'] !== '' && preg_match('/^\d{13}$/', $data['isbn']) !== 1) {
-        $errors[] = 'ISBN musi mit presne 13 cislic bez pomlcek.';
+        $errors[] = 'ISBN musí mít přesně 13 číslic bez pomlček.';
     }
 
+    // Rok vydání povoluje historické knihy a jeden rok dopředu kvůli plánovaným titulům.
     $currentYear = (int) date('Y') + 1;
     if ($data['publication_year'] !== '') {
         if (!ctype_digit($data['publication_year']) || (int) $data['publication_year'] < 1400 || (int) $data['publication_year'] > $currentYear) {
-            $errors[] = 'Rok vydani musi byt mezi 1400 a ' . $currentYear . '.';
+            $errors[] = 'Rok vydání musí být mezi 1400 a ' . $currentYear . '.';
         }
     }
 
+    // Počet stran je volitelný, ale při vyplnění musí být kladné číslo.
     if ($data['pages'] !== '') {
         if (!ctype_digit($data['pages']) || (int) $data['pages'] < 1 || (int) $data['pages'] > 30000) {
-            $errors[] = 'Pocet stran musi byt kladne cislo.';
+            $errors[] = 'Počet stran musí být kladné číslo.';
         }
     }
 
+    // Selecty musí poslat UUID existujících číselníkových záznamů.
     foreach (['publisher_id' => 'vydavatele', 'language_id' => 'jazyk', 'format_id' => 'format'] as $key => $label) {
         if (!is_uuid($data[$key])) {
             $errors[] = 'Vyber ' . $label . '.';
@@ -54,20 +64,22 @@ function validate_book_form(array $options): array
     }
 
     if ($data['author_ids'] === []) {
-        $errors[] = 'Vyber alespon jednoho autora.';
+        $errors[] = 'Vyber alespoň jednoho autora.';
     }
 
     if ($data['genre_ids'] === []) {
-        $errors[] = 'Vyber alespon jeden zanr.';
+        $errors[] = 'Vyber alespoň jeden žánr.';
     }
 
+    // Kontrola všech vybraných vazeb chrání před ručně upraveným formulářem.
     foreach (array_merge($data['author_ids'], $data['genre_ids']) as $id) {
         if (!is_uuid($id)) {
-            $errors[] = 'Formular obsahuje neplatne ID.';
+            $errors[] = 'Formulář obsahuje neplatné ID.';
             break;
         }
     }
 
+    // Prázdná volitelná pole se pro databázi převedou na null, čísla na int.
     $data['isbn'] = $data['isbn'] === '' ? null : $data['isbn'];
     $data['publication_year'] = $data['publication_year'] === '' ? null : (int) $data['publication_year'];
     $data['pages'] = $data['pages'] === '' ? null : (int) $data['pages'];
@@ -76,6 +88,7 @@ function validate_book_form(array $options): array
     return [$data, $errors];
 }
 
+// Výchozí stav formuláře pro první zobrazení stránky.
 $errors = [];
 $data = [
     'title' => '',
@@ -93,17 +106,20 @@ $data = [
 render_header('Pridat knihu');
 
 try {
+    // Číselníky se načítají vždy, protože jsou potřeba pro selecty a checkboxy.
     $options = lookup_options();
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [$data, $errors] = validate_book_form($options);
 
         if ($errors === []) {
+            // Po úspěšném uložení se přesměruje na detail nové knihy.
             $bookId = create_book($data);
             redirect_to('/book.php?id=' . rawurlencode($bookId) . '&created=1');
         }
     }
     ?>
+    <!-- Formulář si při chybě ponechá odeslané hodnoty v poli $data. -->
     <section class="section-heading">
         <div>
             <p class="eyebrow">Zápis do databaze</p>
@@ -122,6 +138,7 @@ try {
         </section>
     <?php endif; ?>
 
+    <!-- novalidate vypíná vestavěné hlášky prohlížeče, validaci řeší app.js a PHP. -->
     <form class="panel form" method="post" action="/add-book.php" data-validate-book novalidate>
         <div class="client-errors notice error" hidden></div>
 
@@ -214,6 +231,7 @@ try {
     </form>
     <?php
 } catch (Throwable $exception) {
+    // Pokud nelze načíst číselníky nebo uložit knihu, zobrazí se databázová chyba.
     render_db_error($exception);
 }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/bootstrap.php';
 
+// Detail knihy se vybírá podle UUID v parametru id.
 $id = (string) ($_GET['id'] ?? '');
 
 render_header('Detail knihy');
@@ -12,6 +13,7 @@ try {
     $book = fetch_book($id);
 
     if ($book === null) {
+        // Sem se dostaneme při neplatném UUID nebo když databáze knihu nenajde.
         ?>
         <section class="notice">
             <h1>Kniha nebyla nalezena</h1>
@@ -21,10 +23,12 @@ try {
         <?php
     } else {
         ?>
+        <!-- Po vložení nové knihy přijde uživatel sem s parametrem created=1. -->
         <?php if (isset($_GET['created'])): ?>
             <div class="notice success">Kniha byla uložena do databáze.</div>
         <?php endif; ?>
 
+        <!-- Detail kombinuje hlavní údaje knihy, autory a žánry z repository. -->
         <article class="detail">
             <p class="eyebrow">Detail knihy</p>
             <h1><?= e($book['title']) ?></h1>
@@ -49,6 +53,7 @@ try {
                 </section>
             <?php endif; ?>
 
+            <!-- Autoři jsou samostatné záznamy napojené přes tabulku books_authors. -->
             <section>
                 <h2>Autoři</h2>
                 <div class="grid">
@@ -69,6 +74,7 @@ try {
                 </div>
             </section>
 
+            <!-- Žánry jsou vypsané jako malé štítky místo dlouhého seznamu. -->
             <section>
                 <h2>Žánry</h2>
                 <div class="chips">
@@ -83,6 +89,7 @@ try {
         <?php
     }
 } catch (Throwable $exception) {
+    // Zachytí například výpadek databáze nebo chybu v dotazu.
     render_db_error($exception);
 }
 

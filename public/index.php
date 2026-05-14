@@ -7,9 +7,11 @@ require_once __DIR__ . '/../src/bootstrap.php';
 render_header('Prehled');
 
 try {
+    // Úvodní stránka potřebuje jen souhrnné statistiky a malý výběr knih.
     $stats = dashboard_stats();
     $recentBooks = recent_books();
     ?>
+    <!-- Hlavní úvodní blok s krátkým popisem aplikace. -->
     <section class="hero">
         <div>
             <p class="eyebrow">Školní full-stack projekt</p>
@@ -22,6 +24,7 @@ try {
         <a class="button" href="/books.php">Prohlížet knihy</a>
     </section>
 
+    <!-- Čísla se počítají přímo v databázi funkcí dashboard_stats(). -->
     <section class="stats" aria-label="Statistiky katalogu">
         <article>
             <strong><?= e($stats['books']) ?></strong>
@@ -42,6 +45,7 @@ try {
         <a href="/add-book.php">Přidat další</a>
     </section>
 
+    <!-- Karty ukazují několik knih a odkazují na detail podle UUID knihy. -->
     <div class="grid">
         <?php foreach ($recentBooks as $book): ?>
             <article class="card">
@@ -60,6 +64,7 @@ try {
     </div>
     <?php
 } catch (Throwable $exception) {
+    // Pokud databáze není dostupná, stránka nespadne na fatal error, ale zobrazí návod.
     render_db_error($exception);
 }
 

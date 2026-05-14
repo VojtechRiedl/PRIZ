@@ -2,9 +2,13 @@
 
 declare(strict_types=1);
 
+// Vykreslí společnou hlavičku stránky, navigaci a otevře hlavní obsah <main>.
+// Parametr $title je připravený pro název stránky; HTML <title> je zatím fixní.
 function render_header(string $title): void
 {
     $page = current_page();
+
+    // Klíč je cílový soubor, hodnota je text odkazu v navigaci.
     $items = [
         'index.php' => 'Přehled',
         'books.php' => 'Knihy',
@@ -25,6 +29,7 @@ function render_header(string $title): void
         <header class="site-header">
             <a class="brand" href="/index.php">Katalog knih</a>
             <nav class="nav" aria-label="Hlavni navigace">
+                <!-- Aktivní odkaz dostane třídu podle aktuální PHP stránky. -->
                 <?php foreach ($items as $href => $label): ?>
                     <a class="<?= $page === $href ? 'active' : '' ?>" href="/<?= e($href) ?>">
                         <?= e($label) ?>
@@ -36,6 +41,7 @@ function render_header(string $title): void
     <?php
 }
 
+// Uzavře hlavní obsah a vykreslí společnou patičku se základními odkazy.
 function render_footer(): void
 {
     ?>
@@ -65,6 +71,8 @@ function render_footer(): void
     <?php
 }
 
+// Jednotná chybová hláška pro situace, kdy se nepodaří připojit k databázi
+// nebo selže některý databázový dotaz.
 function render_db_error(Throwable $exception): void
 {
     ?>
